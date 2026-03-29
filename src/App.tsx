@@ -1,6 +1,9 @@
+import Router from "@/routes/Router"
+import { RouterProvider } from "react-router-dom"
+
 const App = () => {
   return (
-    <div>Initial</div>
+    <RouterProvider router={Router}/>
   )
 }
 

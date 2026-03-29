@@ -1,6 +1,7 @@
 export const ROUTES = {
   HOME: '/',
   LOGIN: '/login',
+  ROLE_SELECT: '/role',
   REGISTER: '/register',
 
   // Patient
