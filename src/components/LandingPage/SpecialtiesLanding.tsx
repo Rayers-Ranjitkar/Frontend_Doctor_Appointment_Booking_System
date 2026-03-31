@@ -1,5 +1,5 @@
 import { Calendar, CheckCircle, XCircle, Star } from 'lucide-react';
-import { appointments, doctors } from '../../../data/mockData';
+import { appointments } from '@/utils/mockData';
 const SpecialtiesLanding = () => {
 
 const patientAppointments = appointments.filter(a => a.patientId === 'p1');
