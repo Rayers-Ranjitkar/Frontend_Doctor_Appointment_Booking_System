@@ -1,6 +1,10 @@
 import NavBar from "@/components/LandingPage/NavBar"
 import { useNavigate } from 'react-router';
-import { Search,  MapPin, } from 'lucide-react';
+import { Search,  MapPin, ArrowRight} from 'lucide-react';
+import SpecialtiesLanding from "@/components/LandingPage/SpecialtiesLanding";
+import WhyChooseUs from "@/components/LandingPage/WhyChooseUs";
+import { doctors } from "@/utils/mockData"
+import DoctorCard from "@/components/LandingPage/DoctorCard";
 
 const heroImage = 'https://images.unsplash.com/photo-1769698678497-c41f0ab47c3e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=1400&q=80';
 const LandingPage = () => {
@@ -8,8 +12,7 @@ const LandingPage = () => {
 
   return (
     <div>
-        <NavBar />
-
+      <NavBar />
       <section className="relative min-h-screen flex items-center pt-16">
         <div className="absolute inset-0 overflow-hidden">
           <img src={heroImage} alt="Hospital" className="w-full h-full object-cover" />
@@ -74,7 +77,27 @@ const LandingPage = () => {
           </div>
         </div>
       </section>
+      
+      <SpecialtiesLanding />
+      <WhyChooseUs />
+      
+      {/* Top Doctors */}
+      <section className="py-24 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex items-end justify-between mb-14">
+            <div>
+              <p className="text-blue-600 mb-3" style={{ fontSize: '0.9rem', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Our Specialists</p>
+              <h2 className="text-gray-900" style={{ fontSize: '2.25rem', fontWeight: 800 }}>Meet Our Top Doctors</h2>
+            </div>
+            <button onClick={() => navigate('/login')} className="hidden md:flex items-center gap-2 text-blue-600 hover:text-blue-800 transition-colors" style={{ fontWeight: 600, fontSize: '0.9rem' }}>
+              View All Doctors <ArrowRight size={16} />
+            </button>
+          </div>
+          <DoctorCard doctors={doctors}/>
+        </div>
+      </section>
 
+      
     </div>
   )
 }

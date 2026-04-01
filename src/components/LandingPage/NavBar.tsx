@@ -40,11 +40,11 @@ const NavBar = () => {
         ))}
       </nav>
 
-      <div className="flex items-center gap-8">
-        <Link className="text-primary font-medium " to={ROUTES.LOGIN}>
+      <div className="flex items-center gap-6">
+        <Link className="text-primary px-4 py-2 rounded-xl font-medium transition-primary hover:bg-blue-50" to={ROUTES.LOGIN}>
           Sign in
         </Link>
-        <Link to={ROUTES.ROLE_SELECT} className=" bg-linear-to-br from-primary to-[#06B6D4] text-white  px-4 py-2 font-medium rounded-xl">
+        <Link to={ROUTES.ROLE_SELECT} className=" hover:shadow-lg transition-primary bg-linear-to-br from-primary to-[#06B6D4] text-white  px-4 py-2 font-medium rounded-xl">
           Get Started
         </Link>
       </div>
