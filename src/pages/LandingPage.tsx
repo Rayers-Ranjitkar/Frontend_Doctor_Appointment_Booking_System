@@ -96,7 +96,8 @@ const LandingPage = () => {
           <DoctorCard doctors={doctors}/>
         </div>
       </section>
-
+      
+      
       
     </div>
   )

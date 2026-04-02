@@ -18,7 +18,7 @@ const navLinks: NavLinks[] = [
 
 const NavBar = () => {
   return (
-    <section className="w-screen max-w-325 p-6 mx-auto my-0 flex justify-between">
+    <section className="w-screen max-w-325 p-4 mx-auto my-0 flex justify-between">
       <div className="flex gap-2 items-center">
         <div className="p-3 bg-linear-to-br from-primary to-[#06B6D4] rounded-xl">
           <FaRegHeart color="white" />
@@ -26,7 +26,7 @@ const NavBar = () => {
         <h1 className="font-bold font-inter">MediBook</h1>
       </div>
 
-      <nav className="flex gap-8 text-[#4A5565] ">
+      <nav className="flex items-center gap-8 text-[#4A5565] ">
         {navLinks.map((link) => (
           <ScrollLink
             key={link.label}
