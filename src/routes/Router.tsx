@@ -5,6 +5,7 @@ import Login from "@/pages/Login";
 import { RedirectIfAuthenticated, RequirePatientAuth } from "@/constants/AuthGate";
 import PatientLayout from "@/pages/PatientLayout";
 import PatientDashboard from "@/pages/Patient/PatientDashboard";
+import SearchDoctors from "@/pages/Patient/SearchDoctors";
 const Router = createBrowserRouter([
   {
     path: ROUTES.HOME,
