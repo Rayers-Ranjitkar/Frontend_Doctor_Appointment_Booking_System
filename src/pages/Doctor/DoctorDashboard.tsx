@@ -1,9 +1,18 @@
+<<<<<<< HEAD
 import { useNavigate } from 'react-router';
 import { Users, Calendar, Clock, CheckCircle, ChevronRight, TrendingUp } from 'lucide-react';
 import { appointments, doctors, chartData } from '@/utils/mockData';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
 const doctor = doctors[0]; // Dr. James Wilson
+=======
+
+import { useNavigate } from 'react-router';
+import { Users, Calendar, Clock, CheckCircle, ChevronRight,  TrendingUp } from 'lucide-react';
+import { appointments, doctors } from '@/utils/mockData';
+
+const doctor = doctors[0]; 
+>>>>>>> f7f5c39fb100aae6a3f80272382a399799df82cf
 const doctorAppointments = appointments.filter(a => a.doctorId === 'd1');
 const todayAppts = doctorAppointments.filter(a => a.date === '2026-03-17');
 const upcoming = doctorAppointments.filter(a => a.status === 'confirmed' || a.status === 'pending');
@@ -95,8 +104,12 @@ export default function DoctorDashboard() {
             </div>
           )}
         </div>
+<<<<<<< HEAD
 
         {/* Appointment Stats */}
+=======
+        
+>>>>>>> f7f5c39fb100aae6a3f80272382a399799df82cf
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           <h2 className="text-gray-900 mb-4" style={{ fontSize: '1.05rem', fontWeight: 700 }}>Quick Stats</h2>
           <div className="space-y-4">
@@ -130,6 +143,7 @@ export default function DoctorDashboard() {
         </div>
       </div>
 
+<<<<<<< HEAD
       {/* Appointments Chart */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
         <div className="flex items-center justify-between mb-6">
@@ -156,3 +170,8 @@ export default function DoctorDashboard() {
     </div>
   );
 }
+=======
+</div>
+  );
+}
+>>>>>>> f7f5c39fb100aae6a3f80272382a399799df82cf

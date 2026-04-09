@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Search, Star, MapPin, Filter, ChevronDown, X, Clock, Award } from 'lucide-react';
-import { doctors, specialties } from '../../../data/mockData';
+import { Search, Star, MapPin, Filter,  X, Clock, Award } from 'lucide-react';
+import { doctors, specialties } from '@/utils/mockData';
 
 export default function SearchDoctors() {
   const navigate = useNavigate();

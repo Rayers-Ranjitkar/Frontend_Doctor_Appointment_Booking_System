@@ -1,5 +1,9 @@
 import { useNavigate } from "react-router";
+<<<<<<< HEAD
 import { doctors } from "@/utils/clinicData";
+=======
+import { doctors } from "@/utils/mockData";
+>>>>>>> f7f5c39fb100aae6a3f80272382a399799df82cf
 import { Star } from "lucide-react";
 
 const TopDoctors = () => {
