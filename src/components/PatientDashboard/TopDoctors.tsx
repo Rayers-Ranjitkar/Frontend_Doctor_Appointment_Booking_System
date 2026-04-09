@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router";
-import { doctors } from "../../../data/clinicData";
+import { doctors } from "@/utils/clinicData";
 import { Star } from "lucide-react";
 
 const TopDoctors = () => {
