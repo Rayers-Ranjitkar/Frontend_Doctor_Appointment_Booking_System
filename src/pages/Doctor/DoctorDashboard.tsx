@@ -1,9 +1,18 @@
+<<<<<<< HEAD
+import { useNavigate } from 'react-router';
+import { Users, Calendar, Clock, CheckCircle, ChevronRight, TrendingUp } from 'lucide-react';
+import { appointments, doctors, chartData } from '@/utils/mockData';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+
+const doctor = doctors[0]; // Dr. James Wilson
+=======
 
 import { useNavigate } from 'react-router';
 import { Users, Calendar, Clock, CheckCircle, ChevronRight,  TrendingUp } from 'lucide-react';
 import { appointments, doctors } from '@/utils/mockData';
 
 const doctor = doctors[0]; 
+>>>>>>> f7f5c39fb100aae6a3f80272382a399799df82cf
 const doctorAppointments = appointments.filter(a => a.doctorId === 'd1');
 const todayAppts = doctorAppointments.filter(a => a.date === '2026-03-17');
 const upcoming = doctorAppointments.filter(a => a.status === 'confirmed' || a.status === 'pending');
@@ -95,7 +104,12 @@ export default function DoctorDashboard() {
             </div>
           )}
         </div>
+<<<<<<< HEAD
+
+        {/* Appointment Stats */}
+=======
         
+>>>>>>> f7f5c39fb100aae6a3f80272382a399799df82cf
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           <h2 className="text-gray-900 mb-4" style={{ fontSize: '1.05rem', fontWeight: 700 }}>Quick Stats</h2>
           <div className="space-y-4">
@@ -129,6 +143,35 @@ export default function DoctorDashboard() {
         </div>
       </div>
 
+<<<<<<< HEAD
+      {/* Appointments Chart */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-gray-900" style={{ fontSize: '1.05rem', fontWeight: 700 }}>Appointment Trends</h2>
+          <span className="text-gray-400" style={{ fontSize: '0.82rem' }}>Last 6 months</span>
+        </div>
+        <ResponsiveContainer width="100%" height={200}>
+          <AreaChart data={chartData}>
+            <defs>
+              <linearGradient id="colorAppt" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#10B981" stopOpacity={0.2} />
+                <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+            <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#9CA3AF' }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 12, fill: '#9CA3AF' }} axisLine={false} tickLine={false} />
+            <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }} />
+            <Area type="monotone" dataKey="appointments" stroke="#10B981" strokeWidth={2.5} fill="url(#colorAppt)" name="Total" />
+            <Area type="monotone" dataKey="completed" stroke="#3B82F6" strokeWidth={2} fill="none" strokeDasharray="5 5" name="Completed" />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+=======
 </div>
   );
 }
+>>>>>>> f7f5c39fb100aae6a3f80272382a399799df82cf

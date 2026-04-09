@@ -2,7 +2,7 @@ import type { ElementType, ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
 import { Heart, Bell, ChevronDown, LogOut, Menu } from 'lucide-react';
 import { useState } from 'react';
-
+import { useClinic } from '@/context/ClinicContext';
 import { useAuth } from '@/constants/AuthContext';
 
 export type NavItem = {
@@ -27,65 +27,14 @@ const roleColors = {
 };
 
 export default function AppSidebar({ navItems, role, userName, userImage, userSubtitle, children }: Props) {
-    const notifications = [
-  {
-    id: 1,
-    type: 'confirmation',
-    message: 'Your appointment has been successfully confirmed.',
-    time: '2 mins ago',
-    read: false
-  },
-  {
-    id: 2,
-    type: 'reminder',
-    message: 'Reminder: Your meeting starts in 30 minutes.',
-    time: '10 mins ago',
-    read: false
-  },
-  {
-    id: 3,
-    type: 'cancellation',
-    message: 'Your booking has been cancelled.',
-    time: '1 hour ago',
-    read: true
-  },
-  {
-    id: 4,
-    type: 'queue',
-    message: 'You are now in the queue. Please wait.',
-    time: '2 hours ago',
-    read: true
-  },
-  {
-    id: 5,
-    type: 'payment',
-    message: 'Payment received successfully.',
-    time: 'Yesterday',
-    read: true
-  },
-  {
-    id: 6,
-    type: 'confirmation',
-    message: 'Your order has been confirmed and is being processed.',
-    time: '2 days ago',
-    read: true
-  },
-  {
-    id: 7,
-    type: 'reminder',
-    message: 'Don’t forget your scheduled session tomorrow.',
-    time: '3 days ago',
-    read: false
-  }
-];
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
-  
+  const { notifications, markAllNotificationsRead } = useClinic();
   const { logout } = useAuth();
   const colors = roleColors[role];
-  
+  const unread = notifications.filter(n => !n.read).length;
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
@@ -187,6 +136,11 @@ export default function AppSidebar({ navItems, role, userName, userImage, userSu
             <div className="relative">
               <button onClick={() => setNotifOpen(!notifOpen)} className="relative p-2.5 rounded-xl bg-gray-50 text-gray-500 hover:bg-gray-100 transition-colors">
                 <Bell size={20} />
+                {unread > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center" style={{ fontSize: '0.65rem', fontWeight: 700 }}>
+                    {unread}
+                  </span>
+                )}
               </button>
               {notifOpen && (
                 <div className="absolute right-0 top-12 w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden">
@@ -212,7 +166,9 @@ export default function AppSidebar({ navItems, role, userName, userImage, userSu
                       </div>
                     ))}
                   </div>
-                  
+                  <div className="p-3 text-center">
+                    <button onClick={() => { markAllNotificationsRead(); setNotifOpen(false); }} className="text-blue-600 hover:text-blue-800" style={{ fontSize: '0.85rem', fontWeight: 600 }}>Mark all as read</button>
+                  </div>
                 </div>
               )}
             </div>
@@ -239,4 +195,3 @@ export default function AppSidebar({ navItems, role, userName, userImage, userSu
     </div>
   );
 }
-

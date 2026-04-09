@@ -1,7 +1,7 @@
 import React from 'react'
 import { useNavigate } from 'react-router'
 import { Calendar, Clock,  ChevronRight } from 'lucide-react';
-import { appointments, doctors } from '../../../data/mockData';
+import { appointments, doctors } from '@/utils/mockData';
 
 const patientAppointments = appointments.filter(a => a.patientId === 'p1');
 const upcoming = patientAppointments.filter(a => a.status === 'confirmed' || a.status === 'pending');
