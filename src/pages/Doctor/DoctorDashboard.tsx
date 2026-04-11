@@ -1,9 +1,11 @@
+
 import { useNavigate } from 'react-router';
 import { Users, Calendar, Clock, CheckCircle, ChevronRight, TrendingUp } from 'lucide-react';
 import { appointments, doctors, chartData } from '@/utils/mockData';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
 const doctor = doctors[0]; // Dr. James Wilson
+
 const doctorAppointments = appointments.filter(a => a.doctorId === 'd1');
 const todayAppts = doctorAppointments.filter(a => a.date === '2026-03-17');
 const upcoming = doctorAppointments.filter(a => a.status === 'confirmed' || a.status === 'pending');
@@ -156,3 +158,4 @@ export default function DoctorDashboard() {
     </div>
   );
 }
+
