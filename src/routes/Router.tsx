@@ -6,12 +6,9 @@ import { RedirectIfAuthenticated, RequirePatientAuth } from "@/constants/AuthGat
 import PatientLayout from "@/pages/PatientLayout";
 import PatientDashboard from "@/pages/Patient/PatientDashboard";
 import SearchDoctors from "@/pages/Patient/SearchDoctors";
-<<<<<<< HEAD
 import DoctorDashboard from "@/pages/Doctor/DoctorDashboard";
 import { Component } from "lucide-react";
 import DoctorSchedule from "@/pages/Patient/DoctorSchedule";
-=======
->>>>>>> f7f5c39fb100aae6a3f80272382a399799df82cf
 const Router = createBrowserRouter([
   {
     path: ROUTES.HOME,
@@ -30,6 +27,8 @@ const Router = createBrowserRouter([
         children: [
           { index: true, Component: PatientDashboard },
           { path: 'search', Component: SearchDoctors },
+          { path: 'search', Component: SearchDoctors },
+          
           
         ],
       },
@@ -42,7 +41,9 @@ const Router = createBrowserRouter([
     {
       Component: PatientLayout,
       children: [
-        {index:true, Component: DoctorSchedule}
+        {index:true, Component: DoctorSchedule},
+        {index:true, Component: DoctorDashboard},
+
       ]
     }
     ]
