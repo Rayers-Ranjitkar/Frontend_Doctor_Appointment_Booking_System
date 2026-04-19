@@ -6,6 +6,7 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 
 const doctor = doctors[0]; // Dr. James Wilson
 
+const doctor = doctors[0]; 
 const doctorAppointments = appointments.filter(a => a.doctorId === 'd1');
 const todayAppts = doctorAppointments.filter(a => a.date === '2026-03-17');
 const upcoming = doctorAppointments.filter(a => a.status === 'confirmed' || a.status === 'pending');
@@ -97,8 +98,7 @@ export default function DoctorDashboard() {
             </div>
           )}
         </div>
-
-        {/* Appointment Stats */}
+        
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           <h2 className="text-gray-900 mb-4" style={{ fontSize: '1.05rem', fontWeight: 700 }}>Quick Stats</h2>
           <div className="space-y-4">
@@ -156,6 +156,9 @@ export default function DoctorDashboard() {
         </ResponsiveContainer>
       </div>
     </div>
+  );
+}
+</div>
   );
 }
 

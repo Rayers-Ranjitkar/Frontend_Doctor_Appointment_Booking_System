@@ -18,7 +18,7 @@ const navLinks: NavLinks[] = [
 
 const NavBar = () => {
   return (
-    <section className="w-screen max-w-325 p-6 mx-auto my-0 flex justify-between">
+    <section className="w-screen max-w-325 p-4 mx-auto my-0 flex justify-between">
       <div className="flex gap-2 items-center">
         <div className="p-3 bg-linear-to-br from-primary to-[#06B6D4] rounded-xl">
           <FaRegHeart color="white" />
@@ -26,7 +26,7 @@ const NavBar = () => {
         <h1 className="font-bold font-inter">MediBook</h1>
       </div>
 
-      <nav className="flex gap-8 text-[#4A5565] ">
+      <nav className="flex items-center gap-8 text-[#4A5565] ">
         {navLinks.map((link) => (
           <ScrollLink
             key={link.label}
@@ -40,11 +40,11 @@ const NavBar = () => {
         ))}
       </nav>
 
-      <div className="flex items-center gap-8">
-        <Link className="text-primary font-medium " to={ROUTES.LOGIN}>
+      <div className="flex items-center gap-6">
+        <Link className="text-primary px-4 py-2 rounded-xl font-medium transition-primary hover:bg-blue-50" to={ROUTES.LOGIN}>
           Sign in
         </Link>
-        <Link to={ROUTES.ROLE_SELECT} className=" bg-linear-to-br from-primary to-[#06B6D4] text-white  px-4 py-2 font-medium rounded-xl">
+        <Link to={ROUTES.ROLE_SELECT} className=" hover:shadow-lg transition-primary bg-linear-to-br from-primary to-[#06B6D4] text-white  px-4 py-2 font-medium rounded-xl">
           Get Started
         </Link>
       </div>
