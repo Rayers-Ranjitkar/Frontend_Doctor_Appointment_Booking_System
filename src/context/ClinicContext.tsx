@@ -82,7 +82,10 @@ type ClinicContextValue = {
   patients: Patient[];
   appointments: Appointment[];
   notifications: Notification[];
+  prescriptions: Prescription[];
   queueEntries: QueueEntry[];
+  reviews: Review[];
+  payments: Payment[];
   currentPatient: Patient;
   currentDoctor: Doctor;
   backendConnected: boolean;
@@ -98,7 +101,12 @@ type ClinicContextValue = {
   }) => Promise<{ ok: boolean; error?: string; appointment?: Appointment }>;
   updateAppointmentStatus: (id: string, status: AppointmentStatus) => Promise<void>;
   rescheduleAppointment: (id: string, date: string, time: string) => Promise<{ ok: boolean; error?: string }>;
+  addReview: (payload: { appointmentId: string; doctorId: string; rating: number; comment: string }) => Promise<void>;
+  uploadPrescription: (payload: PrescriptionPayload) => Promise<void>;
+  updatePrescription: (id: string, payload: Partial<PrescriptionPayload>) => Promise<void>;
   updateQueueEntry: (id: string, payload: Partial<QueueEntry>) => Promise<void>;
+  updateDoctorVerification: (id: string, status: Doctor['verificationStatus']) => Promise<void>;
+  askAssistant: (prompt: string) => Promise<AssistantReply>;
 };
 
 const ClinicContext = createContext<ClinicContextValue | null>(null);
@@ -135,7 +143,10 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
   const [patients, setPatients] = useState(seedPatients);
   const [appointments, setAppointments] = useState(seedAppointments);
   const [notifications, setNotifications] = useState(seedNotifications);
+  const [prescriptions, setPrescriptions] = useState(seedPrescriptions);
   const [queueEntries, setQueueEntries] = useState(seedQueueEntries);
+  const [reviews, setReviews] = useState(seedReviews);
+  const [payments, setPayments] = useState(seedPayments);
   const [backendConnected, setBackendConnected] = useState(false);
   const { user, isAuthenticated } = useAuth();
 
@@ -148,7 +159,10 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
     setPatients(data.patients);
     setAppointments(data.appointments);
     setNotifications(data.notifications);
+    setPrescriptions(data.prescriptions);
     setQueueEntries(data.queueEntries);
+    setReviews(data.reviews);
+    setPayments(data.payments);
   };
 
   const pushNotification = (message: string, type: Notification['type']) => {
@@ -332,6 +346,79 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const addReview: ClinicContextValue['addReview'] = async (payload) => {
+    if (!backendConnected) {
+      setReviews((current) => [
+        {
+          id: `r${Date.now()}`,
+          ...payload,
+          patientId: currentPatient.id,
+          createdAt: new Date().toISOString(),
+        },
+        ...current,
+      ]);
+      pushNotification('Thank you. Your doctor review has been submitted.', 'info');
+      return;
+    }
+
+    await apiRequest('/reviews', {
+      method: 'POST',
+      body: JSON.stringify({
+        ...payload,
+        patientId: currentPatient.id,
+      }),
+    });
+    await reloadClinic();
+  };
+
+  const uploadPrescription: ClinicContextValue['uploadPrescription'] = async (payload) => {
+    if (!backendConnected) {
+      setPrescriptions((current) => [
+        {
+          id: `rx${Date.now()}`,
+          doctorId: currentDoctor.id,
+          doctorName: currentDoctor.name,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          fileUrl: '#',
+          ...payload,
+        },
+        ...current,
+      ]);
+      pushNotification(`Prescription uploaded for ${payload.patientName}.`, 'info');
+      return;
+    }
+
+    await apiRequest('/prescriptions', {
+      method: 'POST',
+      body: JSON.stringify({
+        ...payload,
+        doctorId: currentDoctor.id,
+        doctorName: currentDoctor.name,
+        fileUrl: '#',
+      }),
+    });
+    await reloadClinic();
+  };
+
+  const updatePrescription: ClinicContextValue['updatePrescription'] = async (id, payload) => {
+    if (!backendConnected) {
+      setPrescriptions((current) => current.map((prescription) => (
+        prescription.id === id
+          ? { ...prescription, ...payload, updatedAt: new Date().toISOString() }
+          : prescription
+      )));
+      pushNotification('Prescription updated successfully.', 'info');
+      return;
+    }
+
+    await apiRequest(`/prescriptions/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+    await reloadClinic();
+  };
+
   const updateQueueEntry: ClinicContextValue['updateQueueEntry'] = async (id, payload) => {
     if (!backendConnected) {
       setQueueEntries((current) => current.map((entry) => (entry.id === id ? { ...entry, ...payload } : entry)));
@@ -346,6 +433,59 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
     await reloadClinic();
   };
 
+  const updateDoctorVerification: ClinicContextValue['updateDoctorVerification'] = async (id, status) => {
+    if (!backendConnected) {
+      setDoctors((current) => current.map((doctor) => (doctor.id === id ? { ...doctor, verificationStatus: status } : doctor)));
+      pushNotification(`Doctor verification updated to ${status}.`, 'info');
+      return;
+    }
+
+    await apiRequest(`/doctors/${id}/verification`, {
+      method: 'PATCH',
+      body: JSON.stringify({ verificationStatus: status }),
+    });
+    await reloadClinic();
+  };
+
+  const askAssistant: ClinicContextValue['askAssistant'] = async (prompt) => {
+    if (!backendConnected) {
+      const normalized = prompt.toLowerCase();
+      if (
+        normalized === 'hi' ||
+        normalized === 'hello' ||
+        normalized === 'hey' ||
+        normalized.includes('how are you') ||
+        normalized.includes('good morning') ||
+        normalized.includes('good evening')
+      ) {
+        return {
+          summary: "Hi! I'm MediBook AI. Tell me your symptom, or ask about hospital hours and departments.",
+          suggestions: ['Fever symptoms', 'Hospital hours', 'Departments', 'How to book'],
+          recommendedDoctorId: null,
+          action: 'answer_question',
+        };
+      }
+      if (normalized.includes('hospital name') || normalized.includes('my hospital') || normalized.includes('name of hospital')) {
+        return { summary: 'Your hospital name is Norvic Hospital.', suggestions: ['Opening times', 'Departments', 'Available doctors'], recommendedDoctorId: null, action: 'answer_question' };
+      }
+      if (normalized.includes('opening') || normalized.includes('closing') || normalized.includes('open time') || normalized.includes('close time')) {
+        return { summary: 'Norvic Hospital outpatient hours are Sunday to Friday, 8:00 AM to 6:00 PM.', suggestions: ['Lab hours', 'Pharmacy hours', 'Book appointment'], recommendedDoctorId: null, action: 'answer_question' };
+      }
+      // Offline fallback: don't try to "recommend doctors" unless the backend AI is connected.
+      return {
+        summary: 'I can help once the AI assistant is connected. Tell me your symptom (and your age if you can), and I will suggest the right department and doctor.',
+        suggestions: ['Try again', 'Hospital hours', 'Departments', 'Find a doctor'],
+        recommendedDoctorId: null,
+        action: 'answer_question',
+      };
+    }
+
+    return apiRequest('/assistant', {
+      method: 'POST',
+      body: JSON.stringify({ prompt }),
+    });
+  };
+
   return (
     <ClinicContext.Provider
       value={{
@@ -354,7 +494,10 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         patients,
         appointments,
         notifications,
+        prescriptions,
         queueEntries,
+        reviews,
+        payments,
         currentPatient,
         currentDoctor,
         backendConnected,
@@ -363,7 +506,12 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         bookAppointment,
         updateAppointmentStatus,
         rescheduleAppointment,
+        addReview,
+        uploadPrescription,
+        updatePrescription,
         updateQueueEntry,
+        updateDoctorVerification,
+        askAssistant,
       }}
     >
       {children}
