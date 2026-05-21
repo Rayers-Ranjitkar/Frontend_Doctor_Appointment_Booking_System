@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Search, Plus, Trash2, Eye, Phone, Mail, Droplets } from 'lucide-react';
-import { useClinic } from '@/context/ClinicContext';
+import { Search, Plus, Trash2, Eye, Phone, Mail, Droplets, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useClinic } from '../../context/ClinicContext';
 import { useAuth } from '@/constants/AuthContext';
 import type { Patient } from '@/utils/clinicData';
 
@@ -16,6 +16,8 @@ export default function ManagePatients() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [addLoading, setAddLoading] = useState(false);
   const [addError, setAddError] = useState('');
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 10;
   const [addForm, setAddForm] = useState({
     name: '',
     username: '',
@@ -33,6 +35,9 @@ export default function ManagePatients() {
     const matchGender = !filterGender || p.gender === filterGender;
     return matchSearch && matchGender;
   });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const handleDelete = async () => {
     if (!deleteId) return;
@@ -84,9 +89,9 @@ export default function ManagePatients() {
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="flex-1 flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-3 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 transition-all">
           <Search size={18} className="text-gray-400 shrink-0" />
-          <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name, email, or phone..." className="flex-1 outline-none bg-transparent text-gray-700" style={{ fontSize: '0.9rem' }} />
+          <input type="text" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="Search by name, email, or phone..." className="flex-1 outline-none bg-transparent text-gray-700" style={{ fontSize: '0.9rem' }} />
         </div>
-        <select value={filterGender} onChange={(e) => setFilterGender(e.target.value)} className="bg-white border border-gray-200 rounded-xl px-4 py-3 text-gray-600 outline-none hover:border-blue-300" style={{ fontSize: '0.9rem' }}>
+        <select value={filterGender} onChange={(e) => { setFilterGender(e.target.value); setPage(1); }} className="bg-white border border-gray-200 rounded-xl px-4 py-3 text-gray-600 outline-none hover:border-blue-300" style={{ fontSize: '0.9rem' }}>
           <option value="">All Genders</option>
           <option value="Male">Male</option>
           <option value="Female">Female</option>
@@ -119,7 +124,7 @@ export default function ManagePatients() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {filtered.map((patient) => (
+              {paginated.map((patient) => (
                 <tr key={patient.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-3">
@@ -174,6 +179,26 @@ export default function ManagePatients() {
           )}
         </div>
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2">
+          <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="p-2 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+            <ChevronLeft size={18} />
+          </button>
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+            <button key={p} onClick={() => setPage(p)} className={`w-9 h-9 rounded-xl text-sm font-bold transition-colors ${p === page ? 'bg-blue-600 text-white' : 'border border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+              {p}
+            </button>
+          ))}
+          <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="p-2 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+            <ChevronRight size={18} />
+          </button>
+        </div>
+      )}
+      <p className="text-center text-gray-400" style={{ fontSize: '0.8rem' }}>
+        Showing {Math.min((page - 1) * PAGE_SIZE + 1, filtered.length)}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length} patients
+      </p>
 
       {/* Patient Detail Modal */}
       {selectedPatient && (

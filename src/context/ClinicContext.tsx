@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { io, type Socket } from 'socket.io-client';
 import type {
   Appointment,
@@ -26,6 +26,7 @@ import {
   specialties as seedSpecialties,
 } from '@/utils/clinicData';
 import { apiRequest, SOCKET_BASE } from '@/utils/api';
+import { filterQueueEntriesForToday, isPastYmd, todayLocalYMD } from '@/utils/calendarDate';
 import { useAuth } from '@/constants/AuthContext';
 
 type BootstrapResponse = {
@@ -91,6 +92,7 @@ type ClinicContextValue = {
   backendConnected: boolean;
   markAllNotificationsRead: () => void;
   reloadClinic: () => Promise<void>;
+  fetchQueue: () => Promise<void>;
   bookAppointment: (payload: {
     doctorId: string;
     date: string;
@@ -116,6 +118,7 @@ function relativeTimeLabel() {
 }
 
 function fallbackBootstrap(): BootstrapResponse {
+  const today = todayLocalYMD();
   return {
     specialties: seedSpecialties,
     doctors: seedDoctors,
@@ -123,7 +126,7 @@ function fallbackBootstrap(): BootstrapResponse {
     appointments: seedAppointments,
     notifications: seedNotifications,
     prescriptions: seedPrescriptions,
-    queueEntries: seedQueueEntries,
+    queueEntries: filterQueueEntriesForToday(seedQueueEntries, seedAppointments, today),
     reviews: seedReviews,
     payments: seedPayments,
   };
@@ -196,6 +199,16 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const fetchQueue = useCallback(async () => {
+    if (!backendConnected) return;
+    try {
+      const data = await apiRequest<{ queueEntries: QueueEntry[] }>('/queue');
+      setQueueEntries(data.queueEntries);
+    } catch (e) {
+      console.error('Failed to fetch queue:', e);
+    }
+  }, [backendConnected]);
+
   useEffect(() => {
     void reloadClinic();
   }, [isAuthenticated]);
@@ -215,7 +228,12 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         setBackendConnected(true);
       });
 
-      socket.on('clinic:changed', () => {
+      socket.on('clinic:changed', (payload?: { type?: string }) => {
+        const eventType = payload?.type;
+        if (eventType === 'queue-updated' || eventType === 'queue-reordered' || eventType === 'queue-created') {
+          void fetchQueue();
+          return;
+        }
         void reloadClinic();
       });
 
@@ -257,6 +275,10 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
     }
 
     if (!backendConnected) {
+      if (isPastYmd(payload.date)) {
+        return { ok: false, error: 'Cannot book appointments in the past.' };
+      }
+
       if (hasConflict(doctor.id, payload.date, payload.time)) {
         return { ok: false, error: 'Selected time slot is already booked.' };
       }
@@ -327,10 +349,16 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
     if (!backendConnected) {
       const appointment = appointments.find((item) => item.id === id);
       if (!appointment) return { ok: false, error: 'Appointment not found.' };
+      if (isPastYmd(date)) {
+        return { ok: false, error: 'Cannot reschedule to a date in the past.' };
+      }
       if (hasConflict(appointment.doctorId, date, time, appointment.id)) {
         return { ok: false, error: 'That time slot is already taken.' };
       }
       setAppointments((current) => current.map((item) => (item.id === id ? { ...item, date, time } : item)));
+      setQueueEntries((current) =>
+        current.map((entry) => (entry.appointmentId === id ? { ...entry, appointmentDate: date } : entry)),
+      );
       return { ok: true };
     }
 
@@ -503,6 +531,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         backendConnected,
         markAllNotificationsRead,
         reloadClinic,
+        fetchQueue,
         bookAppointment,
         updateAppointmentStatus,
         rescheduleAppointment,

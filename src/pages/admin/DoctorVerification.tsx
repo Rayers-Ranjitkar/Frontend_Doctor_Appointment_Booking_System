@@ -1,4 +1,4 @@
-import { useClinic } from '@/context/ClinicContext';
+import { useClinic } from '../../context/ClinicContext';
 
 export default function DoctorVerification() {
   const { doctors, updateDoctorVerification } = useClinic();

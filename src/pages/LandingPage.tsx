@@ -5,6 +5,7 @@ import SpecialtiesLanding from "@/components/LandingPage/SpecialtiesLanding";
 import WhyChooseUs from "@/components/LandingPage/WhyChooseUs";
 import { doctors } from "@/utils/mockData"
 import DoctorCard from "@/components/LandingPage/DoctorCard";
+import FooterLanding from "@/components/LandingPage/FooterLanding";
 
 const heroImage = 'https://images.unsplash.com/photo-1769698678497-c41f0ab47c3e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=1400&q=80';
 const LandingPage = () => {
@@ -96,7 +97,8 @@ const LandingPage = () => {
           <DoctorCard doctors={doctors}/>
         </div>
       </section>
-      
+
+     <FooterLanding /> 
       
       
     </div>

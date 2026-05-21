@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { createContext, useContext, useEffect, useState } from 'react';
-import { AUTH_TOKEN_KEY, apiRequest } from "@/utils/api"
+import { AUTH_TOKEN_KEY, apiRequest } from '@/utils/api';
 
 export type AuthUser = {
   id: string;
@@ -48,6 +48,7 @@ type AuthContextValue = {
     licenseNumber: string;
     about: string;
     education: string;
+    image?: string;
     availableDays: string[];
     timeSlots: string[];
   }) => Promise<{ ok: boolean; error?: string }>;

@@ -7,7 +7,7 @@ type Tab = 'upcoming' | 'past' | 'cancelled';
 
 export default function MyAppointments() {
   const navigate = useNavigate();
-  const { currentPatient, appointments, updateAppointmentStatus, rescheduleAppointment, addReview } = useClinic();
+  const { currentPatient, appointments, updateAppointmentStatus, rescheduleAppointment, addReview, doctors } = useClinic();
   const [activeTab, setActiveTab] = useState<Tab>('upcoming');
   const [cancelId, setCancelId] = useState<string | null>(null);
   const [rescheduleId, setRescheduleId] = useState<string | null>(null);
@@ -138,7 +138,11 @@ export default function MyAppointments() {
             <p className="text-gray-500 mb-5" style={{ fontSize: '0.88rem' }}>Conflict checks are applied before saving the new slot.</p>
             <div className="grid sm:grid-cols-2 gap-3 mb-4">
               <input type="date" value={newDate} onChange={(event) => setNewDate(event.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none" />
-              <input value={newTime} onChange={(event) => setNewTime(event.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none" />
+              <select value={newTime} onChange={(event) => setNewTime(event.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none">
+                {(doctors.find(d => d.id === appointments.find(a => a.id === rescheduleId)?.doctorId)?.timeSlots || []).map(slot => (
+                  <option key={slot} value={slot}>{slot}</option>
+                ))}
+              </select>
             </div>
             {error ? <div className="mb-4 p-3 rounded-xl bg-red-50 text-red-600" style={{ fontSize: '0.82rem', fontWeight: 600 }}>{error}</div> : null}
             <div className="flex gap-3">

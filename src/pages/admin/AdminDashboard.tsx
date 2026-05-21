@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Activity, Calendar, ChevronRight, MailCheck, ShieldCheck, Stethoscope, Users } from 'lucide-react';
-import { useClinic } from '@/context/ClinicContext';
+import { useClinic } from '../../context/ClinicContext';
 import { useAuth } from '@/constants/AuthContext';
 
 const statusConfig: Record<string, { bg: string; text: string }> = {
