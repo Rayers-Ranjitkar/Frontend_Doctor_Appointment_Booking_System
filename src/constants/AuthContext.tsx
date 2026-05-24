@@ -57,8 +57,10 @@ type AuthContextValue = {
   refreshSession: () => Promise<void>;
 };
 
+// Context object holding global auth state values and helper functions
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+// Local helper to read/write JWT access token from/to local storage
 function setToken(token: string | null) {
   if (token) {
     window.localStorage.setItem(AUTH_TOKEN_KEY, token);
@@ -67,10 +69,12 @@ function setToken(token: string | null) {
   }
 }
 
+// React Provider component wrapper for application authentication state
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Checks local storage token and re-fetches current user profile to restore session
   const refreshSession = async () => {
     const token = window.localStorage.getItem(AUTH_TOKEN_KEY);
     if (!token) {
@@ -94,6 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void refreshSession();
   }, []);
 
+  // Handles user sign in request
   const login: AuthContextValue['login'] = async (payload) => {
     try {
       const result = await apiRequest<{ token: string; user: AuthUser }>('/auth/login', {
@@ -108,6 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Handles patient registration request
   const signupPatient: AuthContextValue['signupPatient'] = async (payload) => {
     try {
       const result = await apiRequest<{ token: string; user: AuthUser }>('/auth/signup/patient', {
@@ -122,11 +128,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Clears active user session from memory and local storage
   const logout = () => {
     setToken(null);
     setUser(null);
   };
 
+  // Administrative creation of another admin user
   const createAdmin: AuthContextValue['createAdmin'] = async (payload) => {
     try {
       await apiRequest('/auth/create/admin', {
@@ -139,6 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Administrative creation of a doctor user profile
   const createDoctor: AuthContextValue['createDoctor'] = async (payload) => {
     try {
       await apiRequest('/auth/create/doctor', {
@@ -151,6 +160,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Updates current user password
   const changePassword: AuthContextValue['changePassword'] = async (payload) => {
     try {
       await apiRequest('/auth/change-password', {
@@ -183,6 +193,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// Custom hook to consume active authentication state
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {

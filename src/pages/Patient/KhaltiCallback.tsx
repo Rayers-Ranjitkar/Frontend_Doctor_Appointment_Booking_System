@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
-import { apiRequest } from '@/utils/api';
+import { apiRequest } from '../../utils/api';
 
 type VerifyResult = {
   lookup: {
@@ -10,6 +10,7 @@ type VerifyResult = {
   };
 };
 
+// Callback handler for verifying Khalti payments after redirect
 export default function KhaltiCallback() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -20,6 +21,7 @@ export default function KhaltiCallback() {
   const pidx = useMemo(() => (searchParams.get('pidx') || '').trim(), [searchParams]);
 
   useEffect(() => {
+    // Verify the payment attempt using the returned pidx parameter
     async function verify() {
       if (!pidx) {
         setMessage('Missing payment identifier. Please contact support.');
@@ -54,6 +56,7 @@ export default function KhaltiCallback() {
 
   return (
     <div className="min-h-[70vh] flex items-center justify-center">
+      {/* --- Payment Result UI Container --- */}
       <div className="bg-white rounded-3xl shadow-xl p-10 max-w-lg w-full text-center space-y-4">
         <h1 className="text-gray-900" style={{ fontSize: '1.6rem', fontWeight: 800 }}>
           Khalti Payment Result

@@ -1,8 +1,8 @@
 import { useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import { Clock, Search, UserCheck, Users } from 'lucide-react';
-import { useClinic } from '@/context/ClinicContext';
-import { filterQueueEntriesForToday, todayLocalYMD } from '@/utils/calendarDate';
+import { useClinic } from '../../context/ClinicContext';
+import { filterQueueEntriesForToday, todayLocalYMD } from '../../utils/calendarDate';
 import React from 'react';
 
 const statusConfig: Record<string, { bg: string; text: string; label: string }> = {
@@ -11,6 +11,7 @@ const statusConfig: Record<string, { bg: string; text: string; label: string }> 
   completed: { bg: 'bg-green-100', text: 'text-green-700', label: 'Completed' },
 };
 
+// Real-time queue tracker allowing patients to monitor their wait time and position
 export default function PatientQueue() {
   const navigate = useNavigate();
   const { queueEntries, currentPatient, appointments, fetchQueue } = useClinic();
@@ -19,6 +20,7 @@ export default function PatientQueue() {
     void fetchQueue();
   }, [fetchQueue]);
 
+  // Calculate the patient's queue position and wait time for today
   const myEntries = useMemo(() => {
     const today = todayLocalYMD();
     const todayQueues = filterQueueEntriesForToday(queueEntries, appointments, today);
@@ -37,6 +39,7 @@ export default function PatientQueue() {
 
   return (
     <div className="space-y-6">
+      {/* --- Queue Header --- */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-gray-900 mb-1" style={{ fontSize: '1.6rem', fontWeight: 800 }}>My Queue Status</h1>
@@ -51,6 +54,7 @@ export default function PatientQueue() {
         </button>
       </div>
 
+      {/* --- Active Queue Status Tracker --- */}
       {activeEntry ? (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
@@ -80,6 +84,7 @@ export default function PatientQueue() {
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-gray-100 p-16 text-center">
+          {/* --- Empty State Fallback --- */}
           <Users size={40} className="text-gray-200 mx-auto mb-3" />
           <p className="text-gray-500 mb-4">You have no active queue position right now.</p>
           <button
@@ -92,6 +97,7 @@ export default function PatientQueue() {
         </div>
       )}
 
+      {/* --- Completed Queue Entries History --- */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="flex items-center justify-between p-6 border-b border-gray-100">
           <h2 className="text-gray-900" style={{ fontSize: '1.05rem', fontWeight: 700 }}>Today&apos;s completed</h2>

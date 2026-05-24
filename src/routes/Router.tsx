@@ -10,11 +10,14 @@ import MyAppointments from "@/pages/Patient/MyAppointments";
 import PatientAssistant from "@/pages/Patient/PatientAssistant";
 import PatientProfile from "@/pages/Patient/PatientProfile";
 import PatientPrescriptions from "@/pages/Patient/PatientPrescriptions";
+import PatientQueue from "@/pages/Patient/PatientQueue";
+import KhaltiCallback from "@/pages/Patient/KhaltiCallback";
 import DoctorLayout from "@/pages/Doctor/DoctorLayout";
 import DoctorDashboard from "@/pages/Doctor/DoctorDashboard";
 import DoctorAppointments from "@/pages/Doctor/DoctorAppointments";
 import DoctorPrescriptions from "@/pages/Doctor/DoctorPrescriptions";
 import DoctorSchedule from "@/pages/Doctor/DoctorSchedule";
+import DoctorQueue from "@/pages/Doctor/DoctorQueue";
 import DoctorProfile from "@/pages/Doctor/DoctorProfile";
 import AdminLayout from "@/pages/Admin/AdminLayout";
 import AdminDashboard from "@/pages/Admin/AdminDashboard";
@@ -43,6 +46,8 @@ const router = createBrowserRouter([
           { path: "search", Component: SearchDoctors },
           { path: "book/:doctorId", Component: BookAppointment },
           { path: "appointments", Component: MyAppointments },
+          { path: "khalti/callback", Component: KhaltiCallback },
+          { path: "queue", Component: PatientQueue },
           { path: "prescriptions", Component: PatientPrescriptions },
           { path: "assistant", Component: PatientAssistant },
           { path: "profile", Component: PatientProfile },
@@ -59,6 +64,7 @@ const router = createBrowserRouter([
         children: [
           { index: true, Component: DoctorDashboard },
           { path: "appointments", Component: DoctorAppointments },
+          { path: "queue", Component: DoctorQueue },
           { path: "prescriptions", Component: DoctorPrescriptions },
           { path: "schedule", Component: DoctorSchedule },
           { path: "profile", Component: DoctorProfile },

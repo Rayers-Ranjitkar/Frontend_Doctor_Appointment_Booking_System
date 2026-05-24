@@ -1,26 +1,33 @@
 import { useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, Clock, Users } from 'lucide-react';
-import { useClinic } from '@/context/ClinicContext';
-import { filterQueueEntriesForToday, todayLocalYMD } from '@/utils/calendarDate';
+import { useClinic } from '../../context/ClinicContext';
+import { filterQueueEntriesForToday, todayLocalYMD } from '../../utils/calendarDate';
 import React from 'react';
 
+// Configuration mapping for patient queue status badges
 const statusConfig: Record<string, { bg: string; text: string; label: string }> = {
   waiting: { bg: 'bg-amber-100', text: 'text-amber-700', label: 'Waiting' },
   in_consultation: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'In consultation' },
   completed: { bg: 'bg-green-100', text: 'text-green-700', label: 'Completed' },
 };
 
+// Live clinic queue management letting doctors start, track, and complete patient consultations
 export default function DoctorQueue() {
   const { queueEntries, currentDoctor, appointments, updateQueueEntry, fetchQueue } = useClinic();
-  const [showCompleted, setShowCompleted] = useState(false);
+  const [showCompleted, setShowCompleted] = useState(false); // Toggles the completed patients list
 
+  // Fetch the latest queue state when the component mounts
   useEffect(() => {
     void fetchQueue();
   }, [fetchQueue]);
 
+  // Derives active (waiting/in_consultation) and completed queues for the current doctor today
   const { active, completed } = useMemo(() => {
     const today = todayLocalYMD();
+    // Filter down to only today's entries across the clinic
     const todayQueues = filterQueueEntriesForToday(queueEntries, appointments, today);
+    
+    // Filter to just this doctor's patients and sort by queue position
     const mine = todayQueues
       .filter((entry) => entry.doctorId === currentDoctor.id)
       .slice()
@@ -34,6 +41,7 @@ export default function DoctorQueue() {
 
   return (
     <div className="space-y-6">
+      {/* --- Queue Header & Refresh Action --- */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-gray-900 mb-1" style={{ fontSize: '1.6rem', fontWeight: 800 }}>Today's Queue</h1>
@@ -53,7 +61,9 @@ export default function DoctorQueue() {
         </button>
       </div>
 
+      {/* --- Active Queue View --- */}
       {active.length === 0 ? (
+        // Empty state when there are no waiting patients
         <div className="bg-white rounded-2xl border border-gray-100 p-16 text-center">
           <Users size={40} className="text-gray-200 mx-auto mb-3" />
           <p className="text-gray-400">No patients in queue today.</p>
@@ -85,6 +95,7 @@ export default function DoctorQueue() {
                 </div>
 
                 <div className="px-5 pb-4 flex gap-2 flex-wrap">
+                  {/* Action to start a consultation and move status from waiting */}
                   {entry.status === 'waiting' && (
                     <button
                       onClick={() => void updateQueueEntry(entry.id, { status: 'in_consultation' })}
@@ -95,6 +106,7 @@ export default function DoctorQueue() {
                     </button>
                   )}
 
+                  {/* Action to finish a consultation, record wait time, and complete the visit */}
                   {entry.status === 'in_consultation' && (
                     <button
                       onClick={() => {
@@ -117,6 +129,7 @@ export default function DoctorQueue() {
         </div>
       )}
 
+      {/* --- Completed Patients Section (Collapsible) --- */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         <button
           onClick={() => setShowCompleted((v) => !v)}
