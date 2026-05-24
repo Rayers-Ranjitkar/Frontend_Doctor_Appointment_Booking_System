@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { ArrowLeft, Star, MapPin, Clock, Award, CheckCircle, Calendar, ChevronLeft, ChevronRight, Wallet } from 'lucide-react';
 import { useClinic } from '@/context/ClinicContext';
+import { apiRequest } from '@/utils/api';
+import { formatLocalYMD } from '@/utils/calendarDate';
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -17,9 +19,11 @@ function getFirstDayOfMonth(year: number, month: number) {
 export default function BookAppointment() {
   const { doctorId } = useParams();
   const navigate = useNavigate();
-  const { doctors, bookAppointment } = useClinic();
+  const { doctors, bookAppointment, currentPatient } = useClinic();
   const doctor = doctors.find((item) => item.id === doctorId) || doctors[0];
   const today = new Date();
+  
+  const [bookedSlots, setBookedSlots] = useState<string[]>([]);
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
   const [selectedDate, setSelectedDate] = useState<number | null>(null);
@@ -29,6 +33,15 @@ export default function BookAppointment() {
   const [paymentStatus, setPaymentStatus] = useState<'paid' | 'awaiting_payment'>('paid');
   const [step, setStep] = useState<'select' | 'confirm' | 'success'>('select');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!selectedDate) return;
+    const apiDate = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(selectedDate).padStart(2, '0')}`;
+    apiRequest<{ bookedSlots: string[] }>(`/doctors/${doctor.id}/booked-slots?date=${apiDate}`)
+      .then((res) => setBookedSlots(res.bookedSlots))
+      .catch(() => setBookedSlots([]));
+  }, [selectedDate, currentMonth, currentYear, doctor.id]);
 
   const daysInMonth = getDaysInMonth(currentYear, currentMonth);
   const firstDay = getFirstDayOfMonth(currentYear, currentMonth);
@@ -45,11 +58,38 @@ export default function BookAppointment() {
   };
 
   const selectedDateObj = selectedDate ? new Date(currentYear, currentMonth, selectedDate) : null;
-  const apiDate = selectedDateObj ? selectedDateObj.toISOString().slice(0, 10) : '';
+  const apiDate = selectedDateObj ? formatLocalYMD(selectedDateObj) : '';
   const formattedDate = selectedDateObj ? selectedDateObj.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : '';
 
   const confirmBooking = async () => {
     if (!selectedDateObj || !selectedTime || !reason.trim()) return;
+    setError('');
+    setLoading(true);
+    if (paymentStatus === 'paid') {
+      try {
+        const response = await apiRequest<{ khalti: { payment_url: string } }>('/payments/khalti/initiate', {
+          method: 'POST',
+          body: JSON.stringify({
+            doctorId: doctor.id,
+            patientId: currentPatient.id,
+            patientName: currentPatient.name,
+            patientAge: currentPatient.age,
+            patientEmail: currentPatient.email,
+            patientPhone: currentPatient.phone.replace(/[^\d]/g, '').slice(-10),
+            date: apiDate,
+            time: selectedTime,
+            reason,
+            notes,
+          }),
+        });
+        window.location.href = response.khalti.payment_url;
+      } catch (paymentError) {
+        setError(paymentError instanceof Error ? paymentError.message : 'Unable to initiate Khalti payment.');
+        setLoading(false);
+      }
+      return;
+    }
+
     const result = await bookAppointment({
       doctorId: doctor.id,
       date: apiDate,
@@ -58,6 +98,7 @@ export default function BookAppointment() {
       notes,
       paymentStatus,
     });
+    setLoading(false);
     if (!result.ok) {
       setError(result.error || 'Unable to book appointment.');
       return;
@@ -154,7 +195,23 @@ export default function BookAppointment() {
                 <div className="bg-white rounded-2xl border border-gray-100 p-6">
                   <h3 className="text-gray-900 mb-4" style={{ fontWeight: 700, fontSize: '1rem' }}>Select Time Slot</h3>
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
-                    {doctor.timeSlots.map((time) => <button key={time} onClick={() => setSelectedTime(time)} className={`py-2.5 px-3 rounded-xl border text-center transition-all ${selectedTime === time ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'border-gray-200 text-gray-600 hover:border-blue-300 hover:bg-blue-50'}`} style={{ fontSize: '0.8rem', fontWeight: selectedTime === time ? 700 : 400 }}>{time}</button>)}
+                    {doctor.timeSlots.map((time) => {
+                      const isBooked = bookedSlots.includes(time);
+                      return (
+                        <button
+                          key={time}
+                          onClick={() => { if (!isBooked) setSelectedTime(time); }}
+                          disabled={isBooked}
+                          className={`py-2.5 px-3 rounded-xl border text-center transition-all
+                            ${isBooked ? 'border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed line-through' : ''}
+                            ${!isBooked && selectedTime === time ? 'bg-blue-600 text-white border-blue-600 shadow-md' : ''}
+                            ${!isBooked && selectedTime !== time ? 'border-gray-200 text-gray-600 hover:border-blue-300 hover:bg-blue-50' : ''}`}
+                          style={{ fontSize: '0.8rem', fontWeight: selectedTime === time ? 700 : 400 }}
+                        >
+                          {time}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -185,7 +242,9 @@ export default function BookAppointment() {
               </div>
               {error ? <div className="p-4 rounded-xl bg-red-50 text-red-600" style={{ fontSize: '0.84rem', fontWeight: 600 }}>{error}</div> : null}
               <div className="flex items-center gap-2 p-4 bg-amber-50 rounded-xl"><Calendar size={18} className="text-amber-500 shrink-0" /><p className="text-amber-700" style={{ fontSize: '0.82rem' }}>This workflow prevents double booking and records Khalti payment status with the appointment.</p></div>
-              <button onClick={() => void confirmBooking()} className="w-full py-4 bg-gradient-to-r from-blue-600 to-cyan-500 text-white rounded-xl hover:shadow-lg transition-all" style={{ fontWeight: 700, fontSize: '1rem' }}>Confirm Appointment</button>
+              <button onClick={() => void confirmBooking()} disabled={loading} className="w-full py-4 bg-gradient-to-r from-blue-600 to-cyan-500 text-white rounded-xl hover:shadow-lg transition-all disabled:opacity-60 disabled:cursor-not-allowed" style={{ fontWeight: 700, fontSize: '1rem' }}>
+                {loading ? (paymentStatus === 'paid' ? 'Redirecting to Khalti...' : 'Booking...') : 'Confirm Appointment'}
+              </button>
             </div>
           )}
         </div>

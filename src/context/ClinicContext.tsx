@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { io, type Socket } from 'socket.io-client';
 import type {
   Appointment,
@@ -26,6 +26,7 @@ import {
   specialties as seedSpecialties,
 } from '@/utils/clinicData';
 import { apiRequest, SOCKET_BASE } from '@/utils/api';
+import { filterQueueEntriesForToday, isPastYmd, todayLocalYMD } from '@/utils/calendarDate';
 import { useAuth } from '@/constants/AuthContext';
 
 type BootstrapResponse = {
@@ -91,6 +92,7 @@ type ClinicContextValue = {
   backendConnected: boolean;
   markAllNotificationsRead: () => void;
   reloadClinic: () => Promise<void>;
+  fetchQueue: () => Promise<void>;
   bookAppointment: (payload: {
     doctorId: string;
     date: string;
@@ -109,13 +111,16 @@ type ClinicContextValue = {
   askAssistant: (prompt: string) => Promise<AssistantReply>;
 };
 
+// Context object holding global clinic/hospital data and state management
 const ClinicContext = createContext<ClinicContextValue | null>(null);
 
 function relativeTimeLabel() {
   return 'just now';
 }
 
+// Fallback bootstrap function returning mockup clinic database when backend is unreachable
 function fallbackBootstrap(): BootstrapResponse {
+  const today = todayLocalYMD();
   return {
     specialties: seedSpecialties,
     doctors: seedDoctors,
@@ -123,7 +128,7 @@ function fallbackBootstrap(): BootstrapResponse {
     appointments: seedAppointments,
     notifications: seedNotifications,
     prescriptions: seedPrescriptions,
-    queueEntries: seedQueueEntries,
+    queueEntries: filterQueueEntriesForToday(seedQueueEntries, seedAppointments, today),
     reviews: seedReviews,
     payments: seedPayments,
   };
@@ -137,6 +142,7 @@ function filterNotificationsForUser(items: Notification[], role?: 'patient' | 'd
   ));
 }
 
+// React Provider component managing real-time socket updates and database interactions
 export function ClinicProvider({ children }: { children: ReactNode }) {
   const [specialties, setSpecialties] = useState(seedSpecialties);
   const [doctors, setDoctors] = useState(seedDoctors);
@@ -196,6 +202,16 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const fetchQueue = useCallback(async () => {
+    if (!backendConnected) return;
+    try {
+      const data = await apiRequest<{ queueEntries: QueueEntry[] }>('/queue');
+      setQueueEntries(data.queueEntries);
+    } catch (e) {
+      console.error('Failed to fetch queue:', e);
+    }
+  }, [backendConnected]);
+
   useEffect(() => {
     void reloadClinic();
   }, [isAuthenticated]);
@@ -215,7 +231,12 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         setBackendConnected(true);
       });
 
-      socket.on('clinic:changed', () => {
+      socket.on('clinic:changed', (payload?: { type?: string }) => {
+        const eventType = payload?.type;
+        if (eventType === 'queue-updated' || eventType === 'queue-reordered' || eventType === 'queue-created') {
+          void fetchQueue();
+          return;
+        }
         void reloadClinic();
       });
 
@@ -231,6 +252,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
     };
   }, [isAuthenticated]);
 
+  // Marks all incoming notifications for the active user session as read
   const markAllNotificationsRead = async () => {
     // Optimistic update
     setNotifications(current => current.map(n => ({ ...n, read: true })));
@@ -250,6 +272,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         appointment.id !== excludeId,
     );
 
+  // Books a new doctor appointment, either optimistically or through the backend REST API
   const bookAppointment: ClinicContextValue['bookAppointment'] = async (payload) => {
     const doctor = doctors.find((item) => item.id === payload.doctorId);
     if (!doctor) {
@@ -257,6 +280,10 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
     }
 
     if (!backendConnected) {
+      if (isPastYmd(payload.date)) {
+        return { ok: false, error: 'Cannot book appointments in the past.' };
+      }
+
       if (hasConflict(doctor.id, payload.date, payload.time)) {
         return { ok: false, error: 'Selected time slot is already booked.' };
       }
@@ -309,6 +336,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Updates status of a scheduled appointment
   const updateAppointmentStatus = async (id: string, status: AppointmentStatus) => {
     if (!backendConnected) {
       setAppointments((current) => current.map((appointment) => (appointment.id === id ? { ...appointment, status } : appointment)));
@@ -323,14 +351,21 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
     await reloadClinic();
   };
 
+  // Reschedules an existing appointment to a new date and time
   const rescheduleAppointment: ClinicContextValue['rescheduleAppointment'] = async (id, date, time) => {
     if (!backendConnected) {
       const appointment = appointments.find((item) => item.id === id);
       if (!appointment) return { ok: false, error: 'Appointment not found.' };
+      if (isPastYmd(date)) {
+        return { ok: false, error: 'Cannot reschedule to a date in the past.' };
+      }
       if (hasConflict(appointment.doctorId, date, time, appointment.id)) {
         return { ok: false, error: 'That time slot is already taken.' };
       }
       setAppointments((current) => current.map((item) => (item.id === id ? { ...item, date, time } : item)));
+      setQueueEntries((current) =>
+        current.map((entry) => (entry.appointmentId === id ? { ...entry, appointmentDate: date } : entry)),
+      );
       return { ok: true };
     }
 
@@ -346,6 +381,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Submits a new review rating and comment for a doctor
   const addReview: ClinicContextValue['addReview'] = async (payload) => {
     if (!backendConnected) {
       setReviews((current) => [
@@ -371,6 +407,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
     await reloadClinic();
   };
 
+  // Generates and uploads a new patient prescription document
   const uploadPrescription: ClinicContextValue['uploadPrescription'] = async (payload) => {
     if (!backendConnected) {
       setPrescriptions((current) => [
@@ -401,6 +438,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
     await reloadClinic();
   };
 
+  // Modifies details of an existing patient prescription record
   const updatePrescription: ClinicContextValue['updatePrescription'] = async (id, payload) => {
     if (!backendConnected) {
       setPrescriptions((current) => current.map((prescription) => (
@@ -419,6 +457,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
     await reloadClinic();
   };
 
+  // Updates the real-time clinic visit queue status
   const updateQueueEntry: ClinicContextValue['updateQueueEntry'] = async (id, payload) => {
     if (!backendConnected) {
       setQueueEntries((current) => current.map((entry) => (entry.id === id ? { ...entry, ...payload } : entry)));
@@ -433,6 +472,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
     await reloadClinic();
   };
 
+  // Updates the verification status of a doctor profile (Admin only)
   const updateDoctorVerification: ClinicContextValue['updateDoctorVerification'] = async (id, status) => {
     if (!backendConnected) {
       setDoctors((current) => current.map((doctor) => (doctor.id === id ? { ...doctor, verificationStatus: status } : doctor)));
@@ -447,6 +487,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
     await reloadClinic();
   };
 
+  // Interacts with MediBook AI assistant for patient triage and doctor recommendations
   const askAssistant: ClinicContextValue['askAssistant'] = async (prompt) => {
     if (!backendConnected) {
       const normalized = prompt.toLowerCase();
@@ -503,6 +544,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         backendConnected,
         markAllNotificationsRead,
         reloadClinic,
+        fetchQueue,
         bookAppointment,
         updateAppointmentStatus,
         rescheduleAppointment,
@@ -519,6 +561,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// Custom hook to access clinic state and action handlers
 export function useClinic() {
   const context = useContext(ClinicContext);
   if (!context) {

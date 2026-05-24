@@ -1,10 +1,12 @@
-import { useMemo, useState } from 'react';
-import { Eye, MapPin, Plus, Search, Star } from 'lucide-react';
-import { useClinic } from '@/context/ClinicContext';
+import { useMemo, useRef, useState } from 'react';
+import { Eye, ImagePlus, MapPin, Plus, Search, Star, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useClinic } from '../../context/ClinicContext';
 import { useAuth } from '@/constants/AuthContext';
+import { apiRequest } from '@/utils/api';
 
 const weekDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const defaultSlots = ['09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM', '11:00 AM'];
+const PAGE_SIZE = 9;
 
 export default function ManageDoctors() {
   const { doctors, specialties, reloadClinic } = useClinic();
@@ -14,6 +16,11 @@ export default function ManageDoctors() {
   const [selectedDoctorId, setSelectedDoctorId] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [message, setMessage] = useState('');
+  const [page, setPage] = useState(1);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>('');
+  const [imageUploading, setImageUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState({
     name: '',
     username: '',
@@ -27,6 +34,7 @@ export default function ManageDoctors() {
     licenseNumber: '',
     about: '',
     education: '',
+    image: '',
     availableDays: ['Monday', 'Wednesday', 'Friday'],
     timeSlots: ['09:00 AM', '09:30 AM', '10:00 AM'],
   });
@@ -37,12 +45,52 @@ export default function ManageDoctors() {
     return matchesSearch && matchesSpecialty;
   }), [doctors, search, filterSpecialty]);
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
   const selectedDoctor = doctors.find((doctor) => doctor.id === selectedDoctorId) || null;
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
+
+  const uploadImage = async (): Promise<string> => {
+    if (!imageFile) return form.image || '';
+    setImageUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('image', imageFile);
+      const res = await fetch('/api/upload/image', { method: 'POST', body: formData });
+      if (!res.ok) throw new Error('Image upload failed');
+      const data = await res.json() as { url: string };
+      // Make the URL absolute so it loads correctly from the backend port
+      return `http://localhost:4000${data.url}`;
+    } finally {
+      setImageUploading(false);
+    }
+  };
+
+  const resetForm = () => {
+    setForm({
+      name: '', username: '', email: '', phone: '', password: '',
+      specialty: 'Cardiology', specialtyId: 'sp1', experience: '5',
+      price: '800', licenseNumber: '', about: '', education: '', image: '',
+      availableDays: ['Monday', 'Wednesday', 'Friday'],
+      timeSlots: ['09:00 AM', '09:30 AM', '10:00 AM'],
+    });
+    setImageFile(null);
+    setImagePreview('');
+  };
+
   const submit = async () => {
+    const imageUrl = await uploadImage();
     const specialty = specialties.find((item) => item.name === form.specialty);
     const result = await createDoctor({
       ...form,
+      image: imageUrl,
       specialtyId: specialty?.id || form.specialtyId,
     });
     if (!result.ok) {
@@ -52,22 +100,7 @@ export default function ManageDoctors() {
     await reloadClinic();
     setShowAddModal(false);
     setMessage('Doctor account created successfully.');
-    setForm({
-      name: '',
-      username: '',
-      email: '',
-      phone: '',
-      password: '',
-      specialty: 'Cardiology',
-      specialtyId: 'sp1',
-      experience: '5',
-      price: '800',
-      licenseNumber: '',
-      about: '',
-      education: '',
-      availableDays: ['Monday', 'Wednesday', 'Friday'],
-      timeSlots: ['09:00 AM', '09:30 AM', '10:00 AM'],
-    });
+    resetForm();
   };
 
   return (
@@ -85,9 +118,9 @@ export default function ManageDoctors() {
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="flex-1 flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-3">
           <Search size={18} className="text-gray-400 shrink-0" />
-          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search doctors..." className="flex-1 outline-none bg-transparent text-gray-700" style={{ fontSize: '0.9rem' }} />
+          <input value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }} placeholder="Search doctors..." className="flex-1 outline-none bg-transparent text-gray-700" style={{ fontSize: '0.9rem' }} />
         </div>
-        <select value={filterSpecialty} onChange={(event) => setFilterSpecialty(event.target.value)} className="bg-white border border-gray-200 rounded-xl px-4 py-3 text-gray-600 outline-none" style={{ fontSize: '0.9rem' }}>
+        <select value={filterSpecialty} onChange={(event) => { setFilterSpecialty(event.target.value); setPage(1); }} className="bg-white border border-gray-200 rounded-xl px-4 py-3 text-gray-600 outline-none" style={{ fontSize: '0.9rem' }}>
           <option value="">All Specialties</option>
           {specialties.map((item) => <option key={item.id} value={item.name}>{item.name}</option>)}
         </select>
@@ -96,7 +129,7 @@ export default function ManageDoctors() {
       {message ? <div className="rounded-2xl bg-blue-50 text-blue-700 px-4 py-3" style={{ fontSize: '0.85rem', fontWeight: 600 }}>{message}</div> : null}
 
       <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-5">
-        {filtered.map((doctor) => (
+        {paginated.map((doctor) => (
           <div key={doctor.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden transition-all hover:shadow-md">
             <div className="relative h-40 overflow-hidden">
               <img src={doctor.image} alt={doctor.name} className="w-full h-full object-cover object-top" />
@@ -129,6 +162,26 @@ export default function ManageDoctors() {
         ))}
       </div>
 
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2">
+          <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="p-2 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+            <ChevronLeft size={18} />
+          </button>
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+            <button key={p} onClick={() => setPage(p)} className={`w-9 h-9 rounded-xl text-sm font-bold transition-colors ${p === page ? 'bg-purple-600 text-white' : 'border border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+              {p}
+            </button>
+          ))}
+          <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="p-2 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+            <ChevronRight size={18} />
+          </button>
+        </div>
+      )}
+      <p className="text-center text-gray-400" style={{ fontSize: '0.8rem' }}>
+        Showing {Math.min((page - 1) * PAGE_SIZE + 1, filtered.length)}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length} doctors
+      </p>
+
       {selectedDoctor && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setSelectedDoctorId(null)}>
           <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto" onClick={(event) => event.stopPropagation()}>
@@ -151,7 +204,6 @@ export default function ManageDoctors() {
                 ))}
               </div>
               <div className="space-y-2 text-gray-700" style={{ fontSize: '0.88rem' }}>
-                <p><strong>Email login:</strong> use the credential created for this doctor.</p>
                 <p><strong>Hospital:</strong> {selectedDoctor.hospital}</p>
                 <p><strong>Verification:</strong> {selectedDoctor.verificationStatus}</p>
                 <p><strong>Available days:</strong> {selectedDoctor.availableDays.join(', ') || 'Not set'}</p>
@@ -170,6 +222,39 @@ export default function ManageDoctors() {
               <h3 className="text-gray-900" style={{ fontSize: '1.15rem', fontWeight: 700 }}>Create Doctor Account</h3>
               <button onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-gray-700">✕</button>
             </div>
+
+            {/* Image Upload */}
+            <div className="mb-5">
+              <p className="text-gray-500 mb-2" style={{ fontSize: '0.8rem', fontWeight: 600 }}>Profile Photo</p>
+              <div className="flex items-center gap-4">
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-24 h-24 rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center cursor-pointer hover:border-purple-400 hover:bg-purple-50 transition-all overflow-hidden shrink-0"
+                >
+                  {imagePreview ? (
+                    <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <>
+                      <ImagePlus size={24} className="text-gray-400 mb-1" />
+                      <span className="text-gray-400" style={{ fontSize: '0.7rem' }}>Upload</span>
+                    </>
+                  )}
+                </div>
+                <div>
+                  <p className="text-gray-600" style={{ fontSize: '0.82rem' }}>Click the box to choose a profile photo.</p>
+                  <p className="text-gray-400" style={{ fontSize: '0.75rem' }}>JPG, PNG or WebP · max 5 MB</p>
+                  {imageFile && <p className="text-purple-600 mt-1" style={{ fontSize: '0.75rem', fontWeight: 600 }}>{imageFile.name}</p>}
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleImageChange}
+                />
+              </div>
+            </div>
+
             <div className="grid md:grid-cols-2 gap-4">
               <input value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} placeholder="Full name" className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none" />
               <input value={form.username} onChange={(event) => setForm((current) => ({ ...current, username: event.target.value }))} placeholder="Username" className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none" />
@@ -231,7 +316,9 @@ export default function ManageDoctors() {
             </div>
             <div className="flex gap-3 mt-6">
               <button onClick={() => setShowAddModal(false)} className="flex-1 py-3 border border-gray-200 rounded-xl text-gray-600" style={{ fontWeight: 600 }}>Cancel</button>
-              <button onClick={() => void submit()} className="flex-1 py-3 bg-gradient-to-r from-purple-600 to-violet-500 text-white rounded-xl hover:shadow-md" style={{ fontWeight: 600 }}>Create Doctor</button>
+              <button onClick={() => void submit()} disabled={imageUploading} className="flex-1 py-3 bg-gradient-to-r from-purple-600 to-violet-500 text-white rounded-xl hover:shadow-md disabled:opacity-60" style={{ fontWeight: 600 }}>
+                {imageUploading ? 'Uploading image...' : 'Create Doctor'}
+              </button>
             </div>
           </div>
         </div>
@@ -239,4 +326,3 @@ export default function ManageDoctors() {
     </div>
   );
 }
-

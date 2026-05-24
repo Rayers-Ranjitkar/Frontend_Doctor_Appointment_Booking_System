@@ -74,9 +74,8 @@ export default function AppSidebar({ navItems, role, userName, userImage, userSu
               key={item.path}
               to={item.path}
               onClick={() => setMobileOpen(false)}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all group ${
-                isActive ? `${colors.active} text-white shadow-lg` : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-              }`}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all group ${isActive ? `${colors.active} text-white shadow-lg` : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                }`}
             >
               <item.icon size={20} className={isActive ? 'text-white' : 'text-gray-500 group-hover:text-white'} />
               <span style={{ fontSize: '0.9rem', fontWeight: isActive ? 600 : 400 }}>{item.label}</span>
@@ -151,13 +150,12 @@ export default function AppSidebar({ navItems, role, userName, userImage, userSu
                     {notifications.map((n) => (
                       <div key={n.id} className={`p-4 border-b border-gray-50 hover:bg-gray-50 transition-colors ${!n.read ? 'bg-blue-50/50' : ''}`}>
                         <div className="flex gap-3">
-                          <div className={`w-2 h-2 rounded-full mt-2 shrink-0 ${
-                            n.type === 'confirmation' ? 'bg-green-400' :
-                            n.type === 'reminder' ? 'bg-blue-400' :
-                            n.type === 'cancellation' ? 'bg-red-400' :
-                            n.type === 'queue' ? 'bg-amber-400' :
-                            n.type === 'payment' ? 'bg-purple-400' : 'bg-gray-400'
-                          }`} />
+                          <div className={`w-2 h-2 rounded-full mt-2 shrink-0 ${n.type === 'confirmation' ? 'bg-green-400' :
+                              n.type === 'reminder' ? 'bg-blue-400' :
+                                n.type === 'cancellation' ? 'bg-red-400' :
+                                  n.type === 'queue' ? 'bg-amber-400' :
+                                    n.type === 'payment' ? 'bg-purple-400' : 'bg-gray-400'
+                            }`} />
                           <div>
                             <p className="text-gray-700" style={{ fontSize: '0.82rem', lineHeight: 1.5 }}>{n.message}</p>
                             <p className="text-gray-400 mt-1" style={{ fontSize: '0.75rem' }}>{n.time}</p>

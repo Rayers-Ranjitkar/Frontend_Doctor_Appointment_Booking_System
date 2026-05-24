@@ -1,5 +1,8 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router';
 import { Activity, Calendar, ChevronRight, MailCheck, ShieldCheck, Stethoscope, Users } from 'lucide-react';
+import { useClinic } from '../../context/ClinicContext';
+import { useAuth } from '@/constants/AuthContext';
 
 const statusConfig: Record<string, { bg: string; text: string }> = {
   confirmed: { bg: 'bg-green-100', text: 'text-green-700' },
@@ -8,35 +11,10 @@ const statusConfig: Record<string, { bg: string; text: string }> = {
   cancelled: { bg: 'bg-red-100', text: 'text-red-700' },
 };
 
-const doctors = [
-  { id: '1', name: 'Dr. Sita Rai', verificationStatus: 'pending' },
-  { id: '2', name: 'Dr. Ramesh Shrestha', verificationStatus: 'verified' },
-  { id: '3', name: 'Dr. Anita Karki', verificationStatus: 'pending' },
-];
-
-const patients = [
-  { id: '1', name: 'Bikash Thapa' },
-  { id: '2', name: 'Sunita Gurung' },
-  { id: '3', name: 'Rohan Magar' },
-];
-
-const appointments = [
-  { id: '1', patientName: 'Bikash Thapa', doctorName: 'Dr. Sita Rai', specialty: 'Cardiology', date: '2025-04-18', time: '10:00 AM', status: 'confirmed', paymentStatus: 'paid', reminderStatus: { sent24h: true, sent1h: false } },
-  { id: '2', patientName: 'Sunita Gurung', doctorName: 'Dr. Ramesh Shrestha', specialty: 'Neurology', date: '2025-04-19', time: '11:30 AM', status: 'pending', paymentStatus: 'unpaid', reminderStatus: { sent24h: false, sent1h: false } },
-  { id: '3', patientName: 'Rohan Magar', doctorName: 'Dr. Anita Karki', specialty: 'Orthopedics', date: '2025-04-20', time: '09:00 AM', status: 'completed', paymentStatus: 'paid', reminderStatus: { sent24h: true, sent1h: true } },
-  { id: '4', patientName: 'Priya Tamang', doctorName: 'Dr. Sita Rai', specialty: 'Cardiology', date: '2025-04-21', time: '02:00 PM', status: 'cancelled', paymentStatus: 'unpaid', reminderStatus: { sent24h: false, sent1h: false } },
-  { id: '5', patientName: 'Anil Bhandari', doctorName: 'Dr. Ramesh Shrestha', specialty: 'Neurology', date: '2025-04-22', time: '03:30 PM', status: 'confirmed', paymentStatus: 'paid', reminderStatus: { sent24h: true, sent1h: false } },
-  { id: '6', patientName: 'Kamala Adhikari', doctorName: 'Dr. Anita Karki', specialty: 'Orthopedics', date: '2025-04-23', time: '08:00 AM', status: 'pending', paymentStatus: 'unpaid', reminderStatus: { sent24h: false, sent1h: false } },
-];
-
-const payments = [
-  { id: '1', amount: 1500, status: 'paid' },
-  { id: '2', amount: 2000, status: 'paid' },
-  { id: '3', amount: 1200, status: 'unpaid' },
-  { id: '4', amount: 1800, status: 'paid' },
-];
-
 export default function AdminDashboard() {
+  const navigate = useNavigate();
+  const { doctors, patients, appointments, payments } = useClinic();
+  const { createAdmin } = useAuth();
   const [adminForm, setAdminForm] = useState({
     name: '',
     username: '',
@@ -47,13 +25,14 @@ export default function AdminDashboard() {
   const [adminMessage, setAdminMessage] = useState('');
 
   const recentAppointments = appointments.slice(0, 6);
-  const reminderSentCount = appointments.filter((a) => a.reminderStatus?.sent24h || a.reminderStatus?.sent1h).length;
-  const pendingVerificationCount = doctors.filter((d) => d.verificationStatus === 'pending').length;
-  const revenue = payments.filter((p) => p.status === 'paid').reduce((sum, p) => sum + p.amount, 0);
+  const reminderSentCount = appointments.filter((appointment) => appointment.reminderStatus?.sent24h || appointment.reminderStatus?.sent1h).length;
+  const pendingVerificationCount = doctors.filter((doctor) => doctor.verificationStatus === 'pending').length;
+  const revenue = payments.filter((payment) => payment.status === 'paid').reduce((sum, payment) => sum + payment.amount, 0);
 
-  const submitAdmin = () => {
-    if (!adminForm.name || !adminForm.username || !adminForm.email || !adminForm.password) {
-      setAdminMessage('Please fill in all required fields.');
+  const submitAdmin = async () => {
+    const result = await createAdmin(adminForm);
+    if (!result.ok) {
+      setAdminMessage(result.error || 'Unable to create admin.');
       return;
     }
     setAdminMessage('Admin account created successfully.');
@@ -86,10 +65,10 @@ export default function AdminDashboard() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: 'Pending Requests', value: appointments.filter((a) => a.status === 'pending').length, color: 'bg-amber-500' },
+          { label: 'Pending Requests', value: appointments.filter((appointment) => appointment.status === 'pending').length, color: 'bg-amber-500' },
           { label: 'Reminder Emails Sent', value: reminderSentCount, color: 'bg-blue-500' },
           { label: 'Pending Verification', value: pendingVerificationCount, color: 'bg-purple-500' },
-          { label: 'Paid Appointments', value: appointments.filter((a) => a.paymentStatus === 'paid').length, color: 'bg-green-500' },
+          { label: 'Paid Appointments', value: appointments.filter((appointment) => appointment.paymentStatus === 'paid').length, color: 'bg-green-500' },
         ].map((item) => (
           <div key={item.label} className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm flex items-center gap-3">
             <div className={`w-3 h-10 rounded-full ${item.color} shrink-0`} />
@@ -104,7 +83,7 @@ export default function AdminDashboard() {
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="flex items-center justify-between p-6 border-b border-gray-100">
           <h2 className="text-gray-900" style={{ fontSize: '1.05rem', fontWeight: 700 }}>Recent Appointments</h2>
-          <button className="flex items-center gap-1 text-purple-600 hover:text-purple-800" style={{ fontSize: '0.85rem', fontWeight: 600 }}>
+          <button onClick={() => navigate('/admin/appointments')} className="flex items-center gap-1 text-purple-600 hover:text-purple-800" style={{ fontSize: '0.85rem', fontWeight: 600 }}>
             View All <ChevronRight size={16} />
           </button>
         </div>
@@ -151,11 +130,11 @@ export default function AdminDashboard() {
 
       <div className="grid sm:grid-cols-3 gap-4">
         {[
-          { label: 'Manage Doctors', desc: `${doctors.length} registered doctors`, icon: Stethoscope, color: 'from-purple-500 to-violet-600' },
-          { label: 'Doctor Verification', desc: `${pendingVerificationCount} verification requests`, icon: ShieldCheck, color: 'from-blue-500 to-cyan-500' },
-          { label: 'Reminder Tracking', desc: `${reminderSentCount} appointments already emailed`, icon: MailCheck, color: 'from-emerald-500 to-teal-500' },
+          { label: 'Manage Doctors', desc: `${doctors.length} registered doctors`, path: '/admin/doctors', icon: Stethoscope, color: 'from-purple-500 to-violet-600' },
+          { label: 'Doctor Verification', desc: `${pendingVerificationCount} verification requests`, path: '/admin/verification', icon: ShieldCheck, color: 'from-blue-500 to-cyan-500' },
+          { label: 'Reminder Tracking', desc: `${reminderSentCount} appointments already emailed`, path: '/admin/appointments', icon: MailCheck, color: 'from-emerald-500 to-teal-500' },
         ].map((item) => (
-          <button key={item.label} className="bg-white rounded-2xl p-5 text-left hover:shadow-md transition-all border border-gray-100 flex items-center gap-4 group">
+          <button key={item.label} onClick={() => navigate(item.path)} className="bg-white rounded-2xl p-5 text-left hover:shadow-md transition-all border border-gray-100 flex items-center gap-4 group">
             <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${item.color} flex items-center justify-center shrink-0`}>
               <item.icon size={22} className="text-white" />
             </div>
@@ -170,20 +149,20 @@ export default function AdminDashboard() {
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
         <div className="mb-5">
           <h2 className="text-gray-900" style={{ fontSize: '1.05rem', fontWeight: 700 }}>Create Admin Account</h2>
-          <p className="text-gray-500" style={{ fontSize: '0.82rem' }}>Create additional internal admin credentials.</p>
+          <p className="text-gray-500" style={{ fontSize: '0.82rem' }}>Create additional internal admin credentials stored in the database.</p>
         </div>
         <div className="grid md:grid-cols-2 gap-4">
-          <input value={adminForm.name} onChange={(e) => setAdminForm((c) => ({ ...c, name: e.target.value }))} placeholder="Full name" className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none" />
-          <input value={adminForm.username} onChange={(e) => setAdminForm((c) => ({ ...c, username: e.target.value }))} placeholder="Username" className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none" />
-          <input value={adminForm.email} onChange={(e) => setAdminForm((c) => ({ ...c, email: e.target.value }))} placeholder="Email" className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none" />
-          <input value={adminForm.phone} onChange={(e) => setAdminForm((c) => ({ ...c, phone: e.target.value }))} placeholder="Phone" className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none" />
-          <input type="password" value={adminForm.password} onChange={(e) => setAdminForm((c) => ({ ...c, password: e.target.value }))} placeholder="Password" className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none md:col-span-2" />
+          <input value={adminForm.name} onChange={(event) => setAdminForm((current) => ({ ...current, name: event.target.value }))} placeholder="Full name" className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none" />
+          <input value={adminForm.username} onChange={(event) => setAdminForm((current) => ({ ...current, username: event.target.value }))} placeholder="Username" className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none" />
+          <input value={adminForm.email} onChange={(event) => setAdminForm((current) => ({ ...current, email: event.target.value }))} placeholder="Email" className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none" />
+          <input value={adminForm.phone} onChange={(event) => setAdminForm((current) => ({ ...current, phone: event.target.value }))} placeholder="Phone" className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none" />
+          <input type="password" value={adminForm.password} onChange={(event) => setAdminForm((current) => ({ ...current, password: event.target.value }))} placeholder="Password" className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none md:col-span-2" />
         </div>
         <div className="mt-4 flex items-center gap-3">
-          <button onClick={submitAdmin} className="px-5 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-violet-500 text-white" style={{ fontWeight: 600 }}>
+          <button onClick={() => void submitAdmin()} className="px-5 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-violet-500 text-white" style={{ fontWeight: 600 }}>
             Create Admin
           </button>
-          {adminMessage && <p className="text-gray-600" style={{ fontSize: '0.84rem', fontWeight: 600 }}>{adminMessage}</p>}
+          {adminMessage ? <p className="text-gray-600" style={{ fontSize: '0.84rem', fontWeight: 600 }}>{adminMessage}</p> : null}
         </div>
       </div>
     </div>

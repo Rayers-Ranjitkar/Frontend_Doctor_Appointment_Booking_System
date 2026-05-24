@@ -37,3 +37,11 @@ export function RedirectIfAuthenticated() {
 export function RequirePatientAuth() {
   return <RequireAuth roles={['patient']} />;
 }
+
+export function RequireDoctorAuth() {
+  return <RequireAuth roles={['doctor']} />;
+}
+
+export function RequireAdminAuth() {
+  return <RequireAuth roles={['admin']} />;
+}

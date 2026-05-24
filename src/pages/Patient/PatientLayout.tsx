@@ -1,10 +1,10 @@
 import { Outlet } from 'react-router';
 import { Bot, CalendarDays, LayoutDashboard, Pill, Search, TimerReset, User } from 'lucide-react';
-import AppSidebar from '@/components/AppSidebar';
-
+import AppSidebar from '../../components/AppSidebar';
+import { useClinic } from '../../context/ClinicContext';
 
 export default function PatientLayout() {
-  
+  const { currentPatient } = useClinic();
   const navItems = [
     { path: '/patient', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/patient/search', label: 'Find Doctors', icon: Search },
@@ -19,8 +19,8 @@ export default function PatientLayout() {
     <AppSidebar
       navItems={navItems}
       role="patient"
-      userName={"Alex"}
-      userSubtitle={`Patient ID: 12345`}
+      userName={currentPatient.name}
+      userSubtitle={`Patient ID: ${currentPatient.id.toUpperCase()}`}
     >
       <Outlet />
     </AppSidebar>
@@ -28,3 +28,4 @@ export default function PatientLayout() {
 }
 
 
+// <AppSidebar> </AppSidebar>

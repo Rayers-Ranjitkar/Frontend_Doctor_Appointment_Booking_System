@@ -1,4 +1,4 @@
-import type { Prescription } from '@/utils/clinicData';
+import type { Prescription } from '../../../data/clinicData';
 
 function formatDisplayDate(value?: string) {
   if (!value) return '-';

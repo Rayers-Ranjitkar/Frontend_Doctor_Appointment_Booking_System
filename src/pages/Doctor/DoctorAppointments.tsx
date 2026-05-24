@@ -1,8 +1,6 @@
-import React from 'react'
-
 import { useState } from 'react';
 import { Calendar, CheckCircle, Clock, Eye, Search, XCircle } from 'lucide-react';
-import { useClinic } from '../../context/ClinicContext';
+import { useClinic } from '@/context/ClinicContext';
 import type { Appointment } from '@/utils/clinicData';
 
 type Status = 'all' | 'pending' | 'confirmed' | 'completed' | 'cancelled';
@@ -136,4 +134,3 @@ export default function DoctorAppointments() {
     </div>
   );
 }
-

@@ -4,7 +4,7 @@ import type { Prescription } from '@/utils/clinicData';
 import { useClinic } from '../../context/ClinicContext';
 import { PrescriptionSheet } from '../../components/prescriptions/PrescriptionSheet';
 import { PrescriptionPreviewModal } from '../../components/prescriptions/PrescriptionPreviewModal';
-import { createPrescriptionHtml } from '@/utils/precriptionDocument';
+import { createPrescriptionHtml } from '@/utils/prescriptionDocument';
 
 type MedicineDraft = Prescription['medicines'][number];
 

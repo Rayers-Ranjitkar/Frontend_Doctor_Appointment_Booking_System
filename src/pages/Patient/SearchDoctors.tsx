@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Search, Star, MapPin, Filter,  X, Clock, Award } from 'lucide-react';
-import { doctors, specialties } from '@/utils/mockData';
+import { Search, Star, MapPin, Filter, X, Clock, Award, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useClinic } from '@/context/ClinicContext';
+import type { Doctor } from '@/utils/clinicData';
 
 export default function SearchDoctors() {
   const navigate = useNavigate();
+  const { doctors, specialties } = useClinic();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSpecialty, setSelectedSpecialty] = useState('');
   const [selectedHospital, setSelectedHospital] = useState('');
@@ -12,12 +15,14 @@ export default function SearchDoctors() {
   const [minRating, setMinRating] = useState(0);
   const [sortBy, setSortBy] = useState('rating');
   const [showFilters, setShowFilters] = useState(false);
-  const [selectedDoctor, setSelectedDoctor] = useState<typeof doctors[0] | null>(null);
+  const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 9;
 
-  const hospitals = [...new Set(doctors.map(d => d.hospital))];
+  const hospitals = [...new Set(doctors.map((d) => d.hospital))];
 
   const filtered = doctors
-    .filter(d => {
+    .filter((d) => {
       const q = searchQuery.toLowerCase();
       const matchesSearch = !q || d.name.toLowerCase().includes(q) || d.specialty.toLowerCase().includes(q) || d.hospital.toLowerCase().includes(q);
       const matchesSpecialty = !selectedSpecialty || d.specialty === selectedSpecialty;
@@ -34,22 +39,23 @@ export default function SearchDoctors() {
       return 0;
     });
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div>
         <h1 className="text-gray-900 mb-1" style={{ fontSize: '1.6rem', fontWeight: 800 }}>Find a Doctor</h1>
         <p className="text-gray-500" style={{ fontSize: '0.9rem' }}>Search from our network of verified specialists</p>
       </div>
 
-      {/* Search Bar */}
       <div className="flex gap-3">
         <div className="flex-1 flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 transition-all">
           <Search size={20} className="text-gray-400 shrink-0" />
           <input
             type="text"
             value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
+            onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
             placeholder="Search doctors, specialties, hospitals..."
             className="flex-1 outline-none bg-transparent text-gray-700"
             style={{ fontSize: '0.95rem' }}
@@ -62,12 +68,12 @@ export default function SearchDoctors() {
       </div>
 
       {/* Specialty Quick Filters */}
-      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+      <div className="flex gap-2 overflow-x-auto pb-2">
         <button onClick={() => setSelectedSpecialty('')} className={`shrink-0 px-4 py-2 rounded-full border transition-all ${!selectedSpecialty ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-200 hover:border-blue-300'}`} style={{ fontSize: '0.82rem', fontWeight: 600 }}>
           All Specialties
         </button>
-        {specialties.map(s => (
-          <button key={s.id} onClick={() => setSelectedSpecialty(s.name === selectedSpecialty ? '' : s.name)} className={`shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full border transition-all ${selectedSpecialty === s.name ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-200 hover:border-blue-300'}`} style={{ fontSize: '0.82rem', fontWeight: 600 }}>
+        {specialties.map((s) => (
+          <button key={s.id} onClick={() => { setSelectedSpecialty(s.name === selectedSpecialty ? '' : s.name); setPage(1); }} className={`shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full border transition-all ${selectedSpecialty === s.name ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-200 hover:border-blue-300'}`} style={{ fontSize: '0.82rem', fontWeight: 600 }}>
             <span>{s.icon}</span> {s.name}
           </button>
         ))}
@@ -78,22 +84,22 @@ export default function SearchDoctors() {
         <div className="bg-white rounded-2xl border border-gray-200 p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <div>
             <label className="block text-gray-700 mb-2" style={{ fontSize: '0.85rem', fontWeight: 600 }}>Hospital</label>
-            <select value={selectedHospital} onChange={e => setSelectedHospital(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-gray-700 outline-none" style={{ fontSize: '0.85rem' }}>
+            <select value={selectedHospital} onChange={(e) => setSelectedHospital(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-gray-700 outline-none" style={{ fontSize: '0.85rem' }}>
               <option value="">All Hospitals</option>
-              {hospitals.map(h => <option key={h} value={h}>{h}</option>)}
+              {hospitals.map((h) => <option key={h} value={h}>{h}</option>)}
             </select>
           </div>
           <div>
             <label className="block text-gray-700 mb-2" style={{ fontSize: '0.85rem', fontWeight: 600 }}>Min Experience: {minExperience}+ yrs</label>
-            <input type="range" min={0} max={20} value={minExperience} onChange={e => setMinExperience(Number(e.target.value))} className="w-full accent-blue-600" />
+            <input type="range" min={0} max={20} value={minExperience} onChange={(e) => setMinExperience(Number(e.target.value))} className="w-full accent-blue-600" />
           </div>
           <div>
             <label className="block text-gray-700 mb-2" style={{ fontSize: '0.85rem', fontWeight: 600 }}>Min Rating: {minRating}+</label>
-            <input type="range" min={0} max={5} step={0.5} value={minRating} onChange={e => setMinRating(Number(e.target.value))} className="w-full accent-blue-600" />
+            <input type="range" min={0} max={5} step={0.5} value={minRating} onChange={(e) => setMinRating(Number(e.target.value))} className="w-full accent-blue-600" />
           </div>
           <div>
             <label className="block text-gray-700 mb-2" style={{ fontSize: '0.85rem', fontWeight: 600 }}>Sort By</label>
-            <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-gray-700 outline-none" style={{ fontSize: '0.85rem' }}>
+            <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-gray-700 outline-none" style={{ fontSize: '0.85rem' }}>
               <option value="rating">Highest Rating</option>
               <option value="experience">Most Experienced</option>
               <option value="price_asc">Price: Low to High</option>
@@ -103,7 +109,6 @@ export default function SearchDoctors() {
         </div>
       )}
 
-      {/* Results Header */}
       <div className="flex items-center justify-between">
         <p className="text-gray-600" style={{ fontSize: '0.9rem' }}>
           <span style={{ fontWeight: 700 }}>{filtered.length}</span> doctors found
@@ -111,9 +116,8 @@ export default function SearchDoctors() {
         </p>
       </div>
 
-      {/* Doctor Cards */}
       <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-5">
-        {filtered.map((doc) => (
+        {paginated.map((doc) => (
           <div key={doc.id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-xl transition-all group">
             <div className="relative h-48 overflow-hidden">
               <img src={doc.image} alt={doc.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 object-top" />
@@ -147,7 +151,7 @@ export default function SearchDoctors() {
               <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                 <div>
                   <p className="text-gray-400" style={{ fontSize: '0.72rem' }}>Consultation Fee</p>
-                  <p className="text-gray-900" style={{ fontWeight: 800, fontSize: '1.1rem' }}>${doc.price}</p>
+                  <p className="text-gray-900" style={{ fontWeight: 800, fontSize: '1.1rem' }}>NPR {doc.price}</p>
                 </div>
                 <div className="flex gap-2">
                   <button onClick={() => setSelectedDoctor(doc)} className="px-4 py-2 border border-blue-200 text-blue-600 rounded-xl hover:bg-blue-50 transition-colors" style={{ fontSize: '0.82rem', fontWeight: 600 }}>
@@ -163,6 +167,28 @@ export default function SearchDoctors() {
         ))}
       </div>
 
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2">
+          <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="p-2 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+            <ChevronLeft size={18} />
+          </button>
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+            <button key={p} onClick={() => setPage(p)} className={`w-9 h-9 rounded-xl text-sm font-bold transition-colors ${p === page ? 'bg-blue-600 text-white' : 'border border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+              {p}
+            </button>
+          ))}
+          <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="p-2 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+            <ChevronRight size={18} />
+          </button>
+        </div>
+      )}
+      {filtered.length > 0 && (
+        <p className="text-center text-gray-400" style={{ fontSize: '0.8rem' }}>
+          Showing {Math.min((page - 1) * PAGE_SIZE + 1, filtered.length)}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length} doctors
+        </p>
+      )}
+
       {filtered.length === 0 && (
         <div className="text-center py-20">
           <Search size={48} className="text-gray-200 mx-auto mb-4" />
@@ -176,7 +202,7 @@ export default function SearchDoctors() {
       {/* Doctor Details Modal */}
       {selectedDoctor && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setSelectedDoctor(null)}>
-          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="relative h-56 overflow-hidden rounded-t-3xl">
               <img src={selectedDoctor.image} alt={selectedDoctor.name} className="w-full h-full object-cover object-top" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
@@ -194,7 +220,7 @@ export default function SearchDoctors() {
                   { label: 'Experience', value: `${selectedDoctor.experience} yrs` },
                   { label: 'Patients', value: selectedDoctor.patients.toLocaleString() },
                   { label: 'Rating', value: `${selectedDoctor.rating} ★` },
-                ].map(s => (
+                ].map((s) => (
                   <div key={s.label} className="bg-gray-50 rounded-xl p-3 text-center">
                     <p className="text-gray-900" style={{ fontWeight: 800, fontSize: '1.1rem' }}>{s.value}</p>
                     <p className="text-gray-500" style={{ fontSize: '0.75rem' }}>{s.label}</p>
@@ -218,7 +244,7 @@ export default function SearchDoctors() {
               <div>
                 <h4 className="text-gray-900 mb-2" style={{ fontWeight: 700 }}>Available Days</h4>
                 <div className="flex flex-wrap gap-2">
-                  {selectedDoctor.availableDays.map(day => (
+                  {selectedDoctor.availableDays.map((day) => (
                     <span key={day} className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full" style={{ fontSize: '0.8rem', fontWeight: 600 }}>{day}</span>
                   ))}
                 </div>
@@ -226,7 +252,7 @@ export default function SearchDoctors() {
               <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                 <div>
                   <p className="text-gray-400" style={{ fontSize: '0.8rem' }}>Consultation Fee</p>
-                  <p className="text-gray-900" style={{ fontWeight: 800, fontSize: '1.3rem' }}>${selectedDoctor.price}</p>
+                  <p className="text-gray-900" style={{ fontWeight: 800, fontSize: '1.3rem' }}>NPR {selectedDoctor.price}</p>
                 </div>
                 <button onClick={() => { setSelectedDoctor(null); navigate(`/patient/book/${selectedDoctor.id}`); }} className="px-8 py-3 bg-gradient-to-r from-blue-600 to-cyan-500 text-white rounded-xl hover:shadow-lg transition-all" style={{ fontWeight: 700 }}>
                   Book Appointment
